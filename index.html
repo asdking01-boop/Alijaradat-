@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NOVA IPTV Pro</title>
+    <!-- الخطوط والأيقونات -->
+    <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!-- Tailwind CSS & HLS.js -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+    <style>
+        :root {
+            --bg-dark: #07090e;
+            --glass-bg: rgba(18, 22, 34, 0.75);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #06b6d4;
+            --accent-purple: #6366f1;
+        }
+        * {
+            font-family: 'Readex Pro', sans-serif;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            background-color: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.14) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.12) 0%, transparent 40%);
+            color: #f8fafc;
+            overflow-x: hidden;
+        }
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .glass-card:hover, .glass-card.active {
+            background: rgba(6, 182, 212, 0.12);
+            border-color: rgba(6, 182, 212, 0.45);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px -5px rgba(6, 182, 212, 0.2);
+        }
+        .gradient-btn {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        .gradient-btn:active {
+            transform: scale(0.97);
+        }
+        /* إخفاء شريط التمرير مع بقاء وظيفته */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .video-fit-cover video { object-fit: cover !important; }
+        .video-fit-fill video { object-fit: fill !important; }
+        .video-fit-contain video { object-fit: contain !important; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#07090e]">
+        <div class="glass w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 rounded-2xl gradient-btn mx-auto flex items-center justify-center shadow-lg shadow-cyan-500/30 mb-3">
+                    <i class="fa-solid fa-satellite-dish text-2xl text-white"></i>
+                </div>
+                <h1 class="text-2xl font-bold tracking-wide bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">NOVA IPTV PRO</h1>
+                <p class="text-xs text-slate-400 mt-1">مشغل البث المباشر والأفلام الذكي</p>
+            </div>
+
+            <!-- أزرار اختيار نوع الدخول -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-900/90 rounded-xl mb-6 border border-white/5">
+                <button onclick="switchLoginTab('xtream')" id="tabXtream" class="py-2 text-xs font-semibold rounded-lg gradient-btn text-white">Xtream Codes</button>
+                <button onclick="switchLoginTab('m3u')" id="tabM3u" class="py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white">ملف / رابط M3U</button>
+            </div>
+
+            <!-- نموذج Xtream Codes -->
+            <form id="xtreamForm" onsubmit="handleXtreamLogin(event)" class="space-y-4">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">رابط السيرفر (Host URL)</label>
+                    <input type="url" id="xtHost" placeholder="http://example.com:8080" required class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400" dir="ltr">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">اسم المستخدم (Username)</label>
+                    <input type="text" id="xtUser" placeholder="Username" required class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400" dir="ltr">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">كلمة المرور (Password)</label>
+                    <input type="password" id="xtPass" placeholder="••••••••" required class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400" dir="ltr">
+                </div>
+                <button type="submit" id="xtSubmitBtn" class="w-full gradient-btn py-3.5 rounded-xl font-semibold text-sm shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول للسيرفر
+                </button>
+            </form>
+
+            <!-- نموذج M3U -->
+            <form id="m3uForm" onsubmit="handleM3uLogin(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">رابط قائمة M3U / M3U8</label>
+                    <input type="url" id="m3uUrl" placeholder="https://example.com/playlist.m3u" class="w-full bg-slate-900/80 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400" dir="ltr">
+                </div>
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-white/10"></div>
+                    <span class="flex-shrink mx-3 text-slate-500 text-xs">أو ارفع ملف من جهازك</span>
+                    <div class="flex-grow border-t border-white/10"></div>
+                </div>
+                <div>
+                    <input type="file" id="m3uFile" accept=".m3u,.m3u8" class="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-cyan-500/20 file:text-cyan-300 hover:file:bg-cyan-500/30">
+                </div>
+                <button type="submit" class="w-full gradient-btn py-3.5 rounded-xl font-semibold text-sm shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-play"></i> تشغيل القائمة
+                </button>
+            </form>
+
+            <!-- زر الوضع التجريبي -->
+            <div class="mt-5 pt-4 border-t border-white/10 text-center">
+                <button onclick="loadDemoPlaylist()" class="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center justify-center gap-1.5 mx-auto">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> تجربة التطبيق بقنوات تجريبية مجانية (Demo)
+                </button>
+            </div>
+            <p id="loginError" class="text-rose-400 text-xs text-center mt-3 hidden"></p>
+        </div>
+    </div>
+
+    <!-- الشاشة الرئيسية للتطبيق -->
+    <div id="appScreen" class="hidden flex-1 flex flex-col h-screen overflow-hidden">
+        
+        <!-- الشريط العلوي -->
+        <header class="glass px-4 py-3 flex items-center justify-between z-20">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl gradient-btn flex items-center justify-center shadow-md">
+                    <i class="fa-solid fa-tv text-sm text-white"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-sm leading-tight">NOVA IPTV</h2>
+                    <span id="connectionBadge" class="text-[10px] text-emerald-400 flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> متصل
+                    </span>
+                </div>
+            </div>
+
+            <!-- شريط البحث -->
+            <div class="flex-1 max-w-md mx-4">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="filterItems()" placeholder="ابحث عن قناة، فيلم، أو مسلسل..." class="w-full bg-slate-900/90 border border-white/10 rounded-xl pr-9 pl-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400">
+                </div>
+            </div>
+
+            <!-- أزرار الحساب والخروج -->
+            <div class="flex items-center gap-2">
+                <button onclick="toggleAccountModal()" class="w-9 h-9 rounded-xl glass-card flex items-center justify-center text-slate-300 hover:text-cyan-400" title="معلومات الحساب">
+                    <i class="fa-solid fa-user-shield text-sm"></i>
+                </button>
+                <button onclick="logout()" class="w-9 h-9 rounded-xl glass-card flex items-center justify-center text-rose-400 hover:bg-rose-500/20" title="تسجيل الخروج">
+                    <i class="fa-solid fa-power-off text-sm"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- محتوى التطبيق (المشغل + القوائم) -->
+        <div class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            
+            <!-- قسم المشغل (أعلى في الهاتف، يسار في الشاشات الكبيرة) -->
+            <div class="w-full lg:w-7/12 xl:w-8/12 bg-black flex flex-col justify-between relative group" id="playerWrapper">
+                <div id="videoContainer" class="relative w-full aspect-video lg:aspect-auto lg:flex-1 bg-black flex items-center justify-center overflow-hidden video-fit-contain">
+                    <video id="videoPlayer" class="w-full h-full" controls playsinline poster=""></video>
+                    
+                    <!-- شاشة البداية قبل اختيار قناة -->
+                    <div id="playerPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-[#080b12] z-10">
+                        <i class="fa-solid fa-circle-play text-5xl text-cyan-500/40 mb-3"></i>
+                        <p class="text-sm text-slate-400">اختر قناة أو فيلماً لبدء المشاهدة</p>
+                    </div>
+                </div>
+
+                <!-- شريط معلومات القناة والتحكم السريع تحت الفيديو -->
+                <div class="glass px-4 py-2.5 flex items-center justify-between">
+                    <div class="flex items-center gap-3 truncate">
+                        <img id="nowPlayingLogo" src="https://via.placeholder.com/40?text=TV" class="w-9 h-9 rounded-lg object-contain bg-slate-800 p-1" alt="logo">
+                        <div class="truncate">
+                            <h3 id="nowPlayingTitle" class="text-xs sm:text-sm font-semibold truncate">لم يتم اختيار بث</h3>
+                            <p id="nowPlayingGroup" class="text-[11px] text-cyan-400 truncate">البث المباشر</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleCurrentFavorite()" id="favBtnPlayer" class="px-3 py-1.5 rounded-lg glass-card text-xs flex items-center gap-1.5 text-slate-300">
+                            <i class="fa-regular fa-heart"></i> <span class="hidden sm:inline">المفضلة</span>
+                        </button>
+                        <button onclick="cycleAspectRatio()" class="px-3 py-1.5 rounded-lg glass-card text-xs flex items-center gap-1.5 text-slate-300" title="تغيير أبعاد الشاشة">
+                            <i class="fa-solid fa-expand"></i> <span id="aspectLabel">أصلي</span>
+                        </button>
+                        <button onclick="togglePiP()" class="px-3 py-1.5 rounded-lg glass-card text-xs text-slate-300" title="صورة داخل صورة">
+                            <i class="fa-solid fa-clone"></i>
+                        </button>
+                        <button onclick="reloadStream()" class="px-3 py-1.5 rounded-lg glass-card text-xs text-cyan-400" title="إعادة تحميل البث">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- قسم التصنيفات والقنوات -->
+            <div class="flex-1 lg:w-5/12 xl:w-4/12 flex flex-col overflow-hidden border-t lg:border-t-0 lg:border-r border-white/10">
+                
+                <!-- تبويبات الأقسام الرئيسية -->
+                <div class="grid grid-cols-4 gap-1 p-2 bg-slate-950/60 border-b border-white/5">
+                    <button onclick="switchMainSection('live')" id="sec-live" class="py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 gradient-btn text-white">
+                        <i class="fa-solid fa-tower-broadcast"></i> مباشر
+                    </button>
+                    <button onclick="switchMainSection('vod')" id="sec-vod" class="py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-film"></i> أفلام
+                    </button>
+                    <button onclick="switchMainSection('series')" id="sec-series" class="py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-clapperboard"></i> مسلسلات
+                    </button>
+                    <button onclick="switchMainSection('fav')" id="sec-fav" class="py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-heart"></i> المفضلة
+                    </button>
+                </div>
+
+                <!-- شريط الباقات الأفقي -->
+                <div id="categoriesBar" class="flex items-center gap-2 overflow-x-auto no-scrollbar px-3 py-2.5 border-b border-white/5 bg-slate-900/40">
+                    <!-- يتم تعبئة الباقات برمجياً -->
+                </div>
+
+                <!-- قائمة القنوات / الأفلام -->
+                <div id="itemsGrid" class="flex-1 overflow-y-auto p-3 space-y-2">
+                    <!-- يتم تعبئة القنوات برمجياً -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة معلومات الاشتراك -->
+    <div id="accountModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+        <div class="glass w-full max-w-sm rounded-3xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 class="font-bold text-base flex items-center gap-2 text-cyan-400">
+                    <i class="fa-solid fa-id-card"></i> تفاصيل الاشتراك
+                </h3>
+                <button onclick="toggleAccountModal()" class="text-slate-400 hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div class="flex justify-between py-1.5 border-b border-white/5">
+                    <span class="text-slate-400">نوع الاتصال:</span>
+                    <span id="accType" class="font-semibold text-white">Xtream API</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-white/5">
+                    <span class="text-slate-400">حالة الحساب:</span>
+                    <span id="accStatus" class="font-semibold text-emerald-400">نشط (Active)</span>
+                </div>
+                <div class="flex justify-between py-1.5 border-b border-white/5">
+                    <span class="text-slate-400">تاريخ الانتهاء:</span>
+                    <span id="accExp" class="font-semibold text-white">غير محدود</span>
+                </div>
+                <div class="flex justify-between py-1.5">
+                    <span class="text-slate-400">الأجهزة المتصلة:</span>
+                    <span id="accConn" class="font-semibold text-cyan-400">1 / 1</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // حالة التطبيق العامة
+        let state = {
+            mode: 'demo', // 'xtream' | 'm3u' | 'demo'
+            xtream: { host: '', user: '', pass: '' },
+            currentSection: 'live', // 'live' | 'vod' | 'series' | 'fav'
+            currentCategory: 'all',
+            categories: { live: [], vod: [], series: [] },
+            items: { live: [], vod: [], series: [] },
+            favorites: JSON.parse(localStorage.getItem('nova_iptv_favs') || '[]'),
+            currentPlaying: null,
+            aspectModes: ['contain', 'cover', 'fill'],
+            aspectIndex: 0
+        };
+
+        let hls = null;
+
+        // التبديل بين تبويبات تسجيل الدخول
+        function switchLoginTab(tab) {
+            const isXtream = tab === 'xtream';
+            document.getElementById('xtreamForm').classList.toggle('hidden', !isXtream);
+            document.getElementById('m3uForm').classList.toggle('hidden', isXtream);
+            document.getElementById('tabXtream').className = isXtream ? 'py-2 text-xs font-semibold rounded-lg gradient-btn text-white' : 'py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white';
+            document.getElementById('tabM3u').className = !isXtream ? 'py-2 text-xs font-semibold rounded-lg gradient-btn text-white' : 'py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white';
+        }
+
+        // الدخول عبر Xtream Codes API
+        async function handleXtreamLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('xtSubmitBtn');
+            const errEl = document.getElementById('loginError');
+            errEl.classList.add('hidden');
+
+            let host = document.getElementById('xtHost').value.trim().replace(/\/+$/, '');
+            const user = document.getElementById('xtUser').value.trim();
+            const pass = document.getElementById('xtPass').value.trim();
+
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال بالسيرفر...';
+            btn.disabled = true;
+
+            try {
+                const baseApi = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+                const authRes = await fetch(baseApi);
+                const authData = await authRes.json();
+
+                if (!authData.user_info || authData.user_info.auth == 0) {
+                    throw new Error('بيانات الدخول غير صحيحة أو الحساب متوقف');
+                }
+
+                state.mode = 'xtream';
+                state.xtream = { host, user, pass };
+
+                // تحديث معلومات الحساب
+                document.getElementById('accType').textContent = 'Xtream Codes API';
+                document.getElementById('accStatus').textContent = authData.user_info.status || 'Active';
+                const expDate = authData.user_info.exp_date ? new Date(authData.user_info.exp_date * 1000).toLocaleDateString('ar-EG') : 'غير محدود';
+                document.getElementById('accExp').textContent = expDate;
+                document.getElementById('accConn').textContent = `${authData.user_info.active_cons || 0} / ${authData.user_info.max_connections || 1}`;
+
+                // جلب باقات وقنوات البث المباشر
+                const [catRes, streamsRes] = await Promise.all([
+                    fetch(`${baseApi}&action=get_live_categories`),
+                    fetch(`${baseApi}&action=get_live_streams`)
+                ]);
+
+                const cats = await catRes.json();
+                const streams = await streamsRes.json();
+
+                state.categories.live = cats.map(c => ({ id: c.category_id, name: c.category_name }));
+                state.items.live = streams.map(s => ({
+                    id: s.stream_id,
+                    name: s.name,
+                    logo: s.stream_icon || 'https://via.placeholder.com/60?text=TV',
+                    catId: s.category_id,
+                    group: 'بث مباشر',
+                    url: `${host}/live/${user}/${pass}/${s.stream_id}.m3u8`
+                }));
+
+                launchApp();
+            } catch (err) {
+                errEl.textContent = 'تعذر الاتصال: تأكد من صحة الرابط والبيانات (أو جرب التطبيق كملف APK لتجاوز قيود المتصفح HTTP).';
+                errEl.classList.remove('hidden');
+            } finally {
+                btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول للسيرفر';
+                btn.disabled = false;
+            }
+        }
+
+        // الدخول عبر ملف أو رابط M3U
+        async function handleM3uLogin(e) {
+            e.preventDefault();
+            const url = document.getElementById('m3uUrl').value.trim();
+            const fileInput = document.getElementById('m3uFile');
+            const errEl = document.getElementById('loginError');
+            errEl.classList.add('hidden');
+
+            try {
+                let m3uText = '';
+                if (fileInput.files.length > 0) {
+                    m3uText = await fileInput.files[0].text();
+                } else if (url) {
+                    const res = await fetch(url);
+                    m3uText = await res.text();
+                } else {
+                    throw new Error('يرجى إدخال رابط M3U أو اختيار ملف من جهازك');
+                }
+
+                parseM3U(m3uText);
+                state.mode = 'm3u';
+                document.getElementById('accType').textContent = 'قائمة M3U';
+                launchApp();
+            } catch (err) {
+                errEl.textContent = err.message || 'تعذر قراءة ملف M3U';
+                errEl.classList.remove('hidden');
+            }
+        }
+
+        // محلل ملفات M3U الذكي
+        function parseM3U(content) {
+            const lines = content.split('\n');
+            const channels = [];
+            const groupsSet = new Set();
+            let currentItem = null;
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line.startsWith('#EXTINF:')) {
+                    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
+                    const groupMatch = line.match(/group-title="([^"]*)"/);
+                    const nameParts = line.split(',');
+                    const name = nameParts[nameParts.length - 1].trim() || 'قناة غير مسماة';
+                    const group = groupMatch && groupMatch[1] ? groupMatch[1] : 'عام';
+
+                    groupsSet.add(group);
+                    currentItem = {
+                        id: 'm3u_' + i,
+                        name: name,
+                        logo: logoMatch && logoMatch[1] ? logoMatch[1] : 'https://via.placeholder.com/60?text=TV',
+                        catId: group,
+                        group: group,
+                        url: ''
+                    };
+                } else if (line && !line.startsWith('#') && currentItem) {
+                    currentItem.url = line;
+                    channels.push(currentItem);
+                    currentItem = null;
+                }
+            }
+
+            state.categories.live = Array.from(groupsSet).map(g => ({ id: g, name: g }));
+            state.items.live = channels;
+        }
+
+        // تشغيل الوضع التجريبي (Demo)
+        function loadDemoPlaylist() {
+            state.mode = 'demo';
+            state.categories.live = [
+                { id: 'news', name: 'قنوات إخبارية' },
+                { id: 'doc', name: 'وثائقي ومنوعات' }
+            ];
+            state.items.live = [
+                {
+                    id: 'demo_1',
+                    name: 'الجزيرة مباشر (FHD)',
+                    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Aljazeera_eng.svg/200px-Aljazeera_eng.svg.png',
+                    catId: 'news',
+                    group: 'قنوات إخبارية',
+                    url: 'https://live-hls-web-aja.getaj.net/AJA/index.m3u8'
+                },
+                {
+                    id: 'demo_2',
+                    name: 'سكاي نيوز عربية (HD)',
+                    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/Sky_News_Arabia_Logo.svg/200px-Sky_News_Arabia_Logo.svg.png',
+                    catId: 'news',
+                    group: 'قنوات إخبارية',
+                    url: 'https://stream.skynewsarabia.com/hls/sna.m3u8'
+                },
+                {
+                    id: 'demo_3',
+                    name: 'DW عربية',
+                    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/Deutsche_Welle_symbol_2012.svg/200px-Deutsche_Welle_symbol_2012.svg.png',
+                    catId: 'doc',
+                    group: 'وثائقي ومنوعات',
+                    url: 'https://dwamdstream103.akamaized.net/hls/live/2015526/dwstream103/index.m3u8'
+                }
+            ];
+            document.getElementById('accType').textContent = 'الوضع التجريبي (Demo)';
+            launchApp();
+            playItem(state.items.live[0]);
+        }
+
+        function launchApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            renderCategories();
+            renderItems();
+        }
+
+        // تبديل الأقسام (مباشر / أفلام / مسلسلات / مفضلة)
+        async function switchMainSection(sec) {
+            state.currentSection = sec;
+            state.currentCategory = 'all';
+
+            ['live', 'vod', 'series', 'fav'].forEach(s => {
+                const btn = document.getElementById('sec-' + s);
+                btn.className = (s === sec)
+                    ? 'py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 gradient-btn text-white'
+                    : 'py-2 rounded-xl text-xs font-medium flex flex-col items-center gap-1 text-slate-400 hover:text-white';
+            });
+
+            // جلب الأفلام أو المسلسلات عند الطلب في وضع Xtream
+            if (state.mode === 'xtream' && sec === 'vod' && state.items.vod.length === 0) {
+                await fetchXtreamVod();
+            }
+
+            renderCategories();
+            renderItems();
+        }
+
+        async function fetchXtreamVod() {
+            const { host, user, pass } = state.xtream;
+            const baseApi = `${host}/player_api.php?username=${encodeURIComponent(user)}&password=${encodeURIComponent(pass)}`;
+            try {
+                const [catRes, vodRes] = await Promise.all([
+                    fetch(`${baseApi}&action=get_vod_categories`),
+                    fetch(`${baseApi}&action=get_vod_streams`)
+                ]);
+                const cats = await catRes.json();
+                const vods = await vodRes.json();
+                state.categories.vod = cats.map(c => ({ id: c.category_id, name: c.category_name }));
+                state.items.vod = vods.map(v => ({
+                    id: v.stream_id,
+                    name: v.name,
+                    logo: v.stream_icon || 'https://via.placeholder.com/60?text=VOD',
+                    catId: v.category_id,
+                    group: 'أفلام',
+                    url: `${host}/movie/${user}/${pass}/${v.stream_id}.${v.container_extension || 'mp4'}`
+                }));
+            } catch (e) {}
+        }
+
+        function renderCategories() {
+            const bar = document.getElementById('categoriesBar');
+            if (state.currentSection === 'fav') {
+                bar.classList.add('hidden');
+                return;
+            }
+            bar.classList.remove('hidden');
+
+            const cats = state.categories[state.currentSection] || [];
+            let html = `<button onclick="selectCategory('all')" class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition ${state.currentCategory === 'all' ? 'gradient-btn text-white font-semibold' : 'glass-card text-slate-300'}">الكل</button>`;
+
+            cats.forEach(c => {
+                const active = state.currentCategory == c.id;
+                html += `<button onclick="selectCategory('${c.id}')" class="px-3.5 py-1.5 rounded-xl text-xs whitespace-nowrap transition ${active ? 'gradient-btn text-white font-semibold' : 'glass-card text-slate-300'}">${c.name}</button>`;
+            });
+            bar.innerHTML = html;
+        }
+
+        function selectCategory(catId) {
+            state.currentCategory = catId;
+            renderCategories();
+            renderItems();
+        }
+
+        function renderItems() {
+            const grid = document.getElementById('itemsGrid');
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+
+            let list = state.currentSection === 'fav'
+                ? state.favorites
+                : (state.items[state.currentSection] || []);
+
+            if (state.currentSection !== 'fav' && state.currentCategory !== 'all') {
+                list = list.filter(item => item.catId == state.currentCategory);
+            }
+
+            if (query) {
+                list = list.filter(item => item.name.toLowerCase().includes(query));
+            }
+
+            if (list.length === 0) {
+                grid.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">لا توجد عناصر مطابقة للعرض</div>`;
+                return;
+            }
+
+            // عرض أول 150 عنصر للحفاظ على سرعة الأداء الفائقة
+            grid.innerHTML = list.slice(0, 150).map(item => {
+                const isPlaying = state.currentPlaying && state.currentPlaying.id === item.id;
+                const isFav = state.favorites.some(f => f.id === item.id);
+                return `
+                <div onclick='playItem(${JSON.stringify(item).replace(/'/g, "&apos;")})' class="glass-card ${isPlaying ? 'active' : ''} p-2.5 rounded-2xl flex items-center justify-between cursor-pointer">
+                    <div class="flex items-center gap-3 truncate">
+                        <img src="${item.logo}" onerror="this.src='https://via.placeholder.com/40?text=TV'" class="w-10 h-10 rounded-xl object-contain bg-slate-900 p-1 shrink-0" alt="">
+                        <div class="truncate">
+                            <h4 class="text-xs font-semibold text-slate-100 truncate">${item.name}</h4>
+                            <span class="text-[10px] text-slate-400">${item.group || 'بث مباشر'}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        ${isFav ? '<i class="fa-solid fa-heart text-rose-500 text-xs"></i>' : ''}
+                        <div class="w-7 h-7 rounded-lg bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                            <i class="fa-solid fa-play text-[10px]"></i>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function filterItems() {
+            renderItems();
+        }
+
+        // تشغيل البث عبر HLS.js أو المشغل الأصلي
+        function playItem(item) {
+            state.currentPlaying = item;
+            document.getElementById('playerPlaceholder').classList.add('hidden');
+            document.getElementById('nowPlayingTitle').textContent = item.name;
+            document.getElementById('nowPlayingGroup').textContent = item.group || 'البث المباشر';
+            document.getElementById('nowPlayingLogo').src = item.logo;
+
+            updateFavButtonState();
+            renderItems();
+
+            const video = document.getElementById('videoPlayer');
+            if (hls) {
+                hls.destroy();
+                hls = null;
+            }
+
+            if (item.url.includes('.m3u8') && Hls.isSupported()) {
+                hls = new Hls({ enableWorker: true, lowLatencyMode: true });
+                hls.loadSource(item.url);
+                hls.attachMedia(video);
+                hls.on(Hls.Events.MANIFEST_PARSED, () => video.play().catch(() => {}));
+            } else {
+                video.src = item.url;
+                video.play().catch(() => {});
+            }
+        }
+
+        function reloadStream() {
+            if (state.currentPlaying) playItem(state.currentPlaying);
+        }
+
+        // إدارة المفضلة
+        function toggleCurrentFavorite() {
+            if (!state.currentPlaying) return;
+            const idx = state.favorites.findIndex(f => f.id === state.currentPlaying.id);
+            if (idx > -1) {
+                state.favorites.splice(idx, 1);
+            } else {
+                state.favorites.push(state.currentPlaying);
+            }
+            localStorage.setItem('nova_iptv_favs', JSON.stringify(state.favorites));
+            updateFavButtonState();
+            renderItems();
+        }
+
+        function updateFavButtonState() {
+            const btn = document.getElementById('favBtnPlayer');
+            if (!state.currentPlaying) return;
+            const isFav = state.favorites.some(f => f.id === state.currentPlaying.id);
+            btn.innerHTML = isFav
+                ? '<i class="fa-solid fa-heart text-rose-500"></i> <span class="hidden sm:inline text-rose-400">مضاف</span>'
+                : '<i class="fa-regular fa-heart"></i> <span class="hidden sm:inline">المفضلة</span>';
+        }
+
+        // تغيير أبعاد الفيديو (Aspect Ratio)
+        function cycleAspectRatio() {
+            state.aspectIndex = (state.aspectIndex + 1) % state.aspectModes.length;
+            const mode = state.aspectModes[state.aspectIndex];
+            const container = document.getElementById('videoContainer');
+            container.className = `relative w-full aspect-video lg:aspect-auto lg:flex-1 bg-black flex items-center justify-center overflow-hidden video-fit-${mode}`;
+            const labels = { contain: 'أصلي', cover: 'تكبير', fill: 'ملء الشاشة' };
+            document.getElementById('aspectLabel').textContent = labels[mode];
+        }
+
+        // وضع صورة داخل صورة
+        async function togglePiP() {
+            const video = document.getElementById('videoPlayer');
+            try {
+                if (document.pictureInPictureElement) {
+                    await document.exitPictureInPicture();
+                } else if (document.pictureInPictureEnabled) {
+                    await video.requestPictureInPicture();
+                }
+            } catch (e) {}
+        }
+
+        function toggleAccountModal() {
+            document.getElementById('accountModal').classList.toggle('hidden');
+        }
+
+        function logout() {
+            if (hls) hls.destroy();
+            document.getElementById('videoPlayer').pause();
+            document.getElementById('appScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
